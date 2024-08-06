@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """Create Flask app blueprint"""
-from flask import jsonify, abort, request
+from flask import jsonify, abort, request, make_response
 from models.state import State
 from models import storage
 from api.v1.views import app_views
@@ -65,5 +65,5 @@ def update_state(state_id):
     for key, value in data.items():
         if key not in ['id', 'created_at', 'updated_at']:
             setattr(state, key, value)
-    state.save()
-    return jsonify(state.to_dict()), 200
+    storage.save()
+    return make_response(jsonify(state.to_dict()), 200)
