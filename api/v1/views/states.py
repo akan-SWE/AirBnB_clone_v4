@@ -28,7 +28,7 @@ def get_state(state_id):
                  strict_slashes=False)
 def delete_state(state_id):
     """Get state obj by id"""
-    state = storage.get(State, state_id)
+    state = storage.get("State", state_id)
 
     if state:
         storage.delete(state)
