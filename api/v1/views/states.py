@@ -10,14 +10,13 @@ from api.v1.views import app_views
 def get_states():
     """Retrieve all the state"""
     states = storage.all(State)
-    state_list = [state.to_dict() for state in states.values()]
-    return jsonify(state_list)
+    return jsonify([obj.to_dict() for obj in states.values()])
 
 
 @app_views.route('/states/<state_id>', methods=['GET'], strict_slashes=False)
 def get_state(state_id):
     """Get state obj by id"""
-    state = storage.get(State, state_id)
+    state = storage.get("State", state_id)
     if not state:
         abort(404)
     return jsonify(state.to_dict())
