@@ -11,6 +11,7 @@ def status():
     response = {'status': "OK"}
     return jsonify(response)
 
+
 @app_views.route('/stats', methods=['GET'], strict_slashes=False)
 def get_stats():
     """Payload to return db tables"""
@@ -20,6 +21,6 @@ def get_stats():
         "places": storage.count("Place"),
         "reviews": storage.count("Review"),
         "states": storage.count("State"),
-        "users": storage.count("User")  
-    }
+        "users": storage.count("User")
+        }
     return jsonify(stats)
