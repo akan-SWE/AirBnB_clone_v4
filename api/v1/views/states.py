@@ -19,10 +19,9 @@ def get_state(state_id):
     """Get state obj by id"""
     state = storage.get(State, state_id)
 
-    if state:
-        return jsonify(state.to_dict())
-    else:
-        return abort(404)
+    if not state:
+        abort(404)
+    return jsonify(state.to_dict())
 
 
 @app_views.route('/states/<state_id>', methods=['DELETE'],
