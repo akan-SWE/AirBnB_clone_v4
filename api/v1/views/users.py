@@ -8,14 +8,14 @@ from api.v1.views import app_views
 
 @app_views.route('/users', methods=['GET'], strict_slashes=False)
 def users():
-    """Retrieve all the state"""
-    states = storage.all(User)
-    return jsonify([obj.to_dict() for obj in states.values()])
+    """ User objects """
+    userss = storage.all(User)
+    return jsonify([obj.to_dict() for obj in userss.values()])
 
 
 @app_views.route('/users/<user_id>', methods=['GET'], strict_slashes=False)
-def get_user(user_id):
-    """Get state obj by id"""
+def userid(user_id):
+    """Users"""
     user = storage.get("User", user_id)
     if not user:
         abort(404)
@@ -25,44 +25,46 @@ def get_user(user_id):
 @app_views.route('/users/<user_id>', methods=['DELETE'],
                  strict_slashes=False)
 def delete_user(user_id):
-    """Get state obj by id"""
-    state = storage.get("User", user_id)
-    if not state:
+    """ Deletes a User object """
+    user = storage.get("User", user_id)
+    if not user:
         abort(404)
-    state.delete()
+    user.delete()
     storage.save()
     return make_response(jsonify({}), 200)
 
 
 @app_views.route('/users', methods=['POST'], strict_slashes=False)
-def create_state():
-    """Create a new State"""
-    statess = request.get_json()
-    if not statess:
+def post_user():
+    """ Creates a User object """
+    new_user = request.get_json()
+    if not new_user:
         abort(400, "Not a JSON")
-    if "email" not in statess:
+    if "email" not in new_user:
         abort(400, "Missing email")
-    if "password" not in statess:
+    if "password" not in new_user:
         abort(400, "Missing password")
-    state = User(**statess)
-    storage.new(state)
+
+    data = User(**new_user)
+    storage.new(data)
     storage.save()
-    return make_response(jsonify(state.to_dict()), 201)
+    return make_response(jsonify(data.to_dict()), 201)
 
 
-@app_views.route('/states/<state_id>', methods=['PUT'], strict_slashes=False)
-def update_state(state_id):
-    """Update state"""
-    state = storage.get("State", state_id)
-    if not state:
+@app_views.route('/users/<user_id>', methods=['PUT'], strict_slashes=False)
+def put_user(user_id):
+    """ Updates a User object """
+    user = storage.get("User", user_id)
+    if not user:
         abort(404)
-    data = request.get_json()
-    if not data:
+
+    body_request = request.get_json()
+    if not body_request:
         abort(400, "Not a JSON")
 
-    for key, value in data.items():
-        if key != 'id' and key != 'created_at' and key != 'updated_at':
-            setattr(state, key, value)
+    for key, value in body_request.items():
+        if key not in ['id', 'email', 'created_at', 'updated_at']:
+            setattr(user, key, value)
 
     storage.save()
-    return make_response(jsonify(state.to_dict()), 200)
+    return make_response(jsonify(user.to_dict()), 200)
