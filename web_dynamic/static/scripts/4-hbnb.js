@@ -27,33 +27,7 @@ $(function () {
     data: '{}',
     contentType: 'application/json',
     success: function (places) {
-      // Iterate over each place returned by the API
-      places.forEach(function (place) {
-        // Create an article element to hold place details
-        const article = $('<article></article>');
-        article.addClass('article');
-
-        // Create and append the title box with place name and price
-        const titleBox = $('<div></div>');
-        titleBox.addClass('title_box');
-        $('<h2>').text(place.name).appendTo(titleBox);
-        $('<div>').text(place.price_by_night).addClass('price_by_night').appendTo(titleBox);
-        article.append(titleBox);
-
-        // Create and append the information box with place details (guests, rooms, bathrooms)
-        const info = $('<div></div>');
-        info.addClass('information');
-        $('<div>').text(place.max_guest + ' Guests').addClass('max_guest').appendTo(info);
-        $('<div>').text(place.number_rooms + ' Rooms').addClass('number_rooms').appendTo(info);
-        $('<div>').text(place.number_bathrooms + ' Bathrooms').addClass('number_bathrooms').appendTo(info);
-        article.append(info);
-
-        // Add the place description to the article
-        $('<div>').text(place.description).addClass('description').appendTo(article);
-
-        // Append the article to the section.places in the DOM
-        $('section.places').append(article);
-      });
+      createPlaces(places);
     }
   });
 
@@ -69,15 +43,45 @@ $(function () {
       type: 'POST',
       data: JSON.stringify({ amenities }),
       contentType: 'application/json',
-      success: function (place) {
-        //
+      success: function (places) {
+        createPlaces(places);
       },
       error: function (error) {
-        console.log('error', error);
+        console.log('Error', error);
       }
     });
   });
 
+  function createPlaces (places) {
+    // Iterate over each place returned by the API
+    const sectionPlaces = $('section.places');
+    sectionPlaces.empty();
+    places.forEach(function (place) {
+      // Create an article element to hold place details
+      const article = $('<article></article>');
+      article.addClass('article');
+
+      // Create and append the title box with place name and price
+      const titleBox = $('<div></div>');
+      titleBox.addClass('title_box');
+      $('<h2>').text(place.name).appendTo(titleBox);
+      $('<div>').text(place.price_by_night).addClass('price_by_night').appendTo(titleBox);
+      article.append(titleBox);
+
+      // Create and append the information box with place details (guests, rooms, bathrooms)
+      const info = $('<div></div>');
+      info.addClass('information');
+      $('<div>').text(place.max_guest + ' Guests').addClass('max_guest').appendTo(info);
+      $('<div>').text(place.number_rooms + ' Rooms').addClass('number_rooms').appendTo(info);
+      $('<div>').text(place.number_bathrooms + ' Bathrooms').addClass('number_bathrooms').appendTo(info);
+      article.append(info);
+
+      // Add the place description to the article
+      $('<div>').text(place.description).addClass('description').appendTo(article);
+      // Append the article to the section.places in the DOM
+      sectionPlaces.append(article);
+    });
+  }
   // check API status
   $.ajax({
     url: 'http://0.0.0.0:5001/api/v1/status/',
