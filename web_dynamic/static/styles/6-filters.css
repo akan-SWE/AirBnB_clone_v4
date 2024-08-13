@@ -101,3 +101,17 @@ button:hover {
 .locations:hover .popover {
     visibility: visible;
 }
+
+.filters h4 {
+    height: 100%;
+    margin-top: 5px;
+    margin-bottom: 30px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.popover input, .popover label h2 {
+    margin-right: 10px;
+    display: inline;
+}
