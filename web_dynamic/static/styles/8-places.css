@@ -100,12 +100,31 @@
   margin-bottom: 1.5%;
 }
 
-.amenities h4 {
-    display: block;
-    height: 100%;
-    margin-top: 5px;
-    margin-bottom: 30px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.places .reviews h2 {
+    margin-top: 5%;
+    padding-bottom: 2%;
+    border-bottom: solid #DDDDDD 1px;
+    text-align: left;
+    font-size: 16px;
+}
+
+.reviews ul {
+    list-style: none;
+    padding: 0px;
+}
+
+.reviews h3, .reviews p {
+    margin: 0px;
+}
+
+.reviews h3, .reviews span {
+    font-size: 14px;
+}
+
+.reviews span {
+    font-weight: lighter;
+}
+
+.reviews p {
+    font-size: 12px;
 }

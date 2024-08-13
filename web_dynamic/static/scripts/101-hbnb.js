@@ -1,165 +1,190 @@
-$(document).ready(function () {
-    // Initialize storage for selected states and cities
-	const selectedStates = new Set();
-        const selectedCities = new Set();
+/* global $ */
 
-        // Function to update the h4 tag with the list of checked states and cities
-        function updateLocationHeader() {
-            const selectedStateNames = Array.from(selectedStates).map(id =>  $('input[data-id="${id}"][data-name]').data('name'));
-	    const selectedCityNames = Array.from(selectedCities).map(id => $('input[data-id="${id}"][data-name]').data('name'));
-	    const allSelected = [...selectedStateNames, ...selectedCityNames];
-	    
-	    if (allSelected.length === 0) { 
-            	$('#locations h4').html('&nbsp;');
-        } else {
-            $('#locations h4').text(allSelected.join(', '));
-	}
-      }
+// Execute when the DOM is fully loaded
+$(function () {
+  // Initialize an empty object to store selected amenities
+  const selectedAmenities = {};
+  const selectedStates = {};
+  const selectedCities = {};
 
-    // Handle checkbox changes
-    $('input[type=checkbox]').change(function () {
-	    const id = $(this).data('id');
-	    const isChecked = $(this).is(':checked');
-
-	    // Update selected states or cities
-	    if ($(this).dtat('name').includes('City')) {
-		if (isChecked) {
-		    selectedCities.add(id);
-		} else {
-		    selectedCities.delete(id);
-		}
-	    } else {
-		if (isChecked) {
-		    selectedStates.add(id);
-		} else {
-		    selectedStates.delete(id);
-		}
-	    }
-
-	    // Update the h4 tag with the current selection
-	    updateLocationHeader();
-
-    });
-
-    // Function to check API status
-    function updateApiStatus() {
-        $.ajax({
-            url: 'http://0.0.0.0:5001/api/v1/status/',
-            type: 'GET',
-            dataType: 'json',
-            success: function (json) {
-                if (json.status === 'OK') {
-                    $('#api_status').addClass('available');
-                } else {
-                    $('#api_status').removeClass('available');
-                }
-            },
-            error: function (xhr, status) {
-                // On error, remove the available class
-                $('#api_status').removeClass('available');
-                console.log('Error ' + status);
-            }
-        });
+  function updateDict (dict, key, value, op) {
+    if (op === 'add') {
+      dict[key] = value;
+    } else {
+      delete dict[key];
     }
-	// Checking API status
-	updateApiStatus();
+  }
 
-	// Handle button click
-	$('#search_btn').click(function () {
-		const amenities = [];
-		const cities = Array.from(selectedCities);
-		const states = Array.from(selectedStates);
+  function formatDate (dateString) {
+    // Format datetime to <day> <month> <year>
+    const date = new Date(dateString);
 
-		// Checking the IDs of amenties
-		$('input[type=checkbox]:checked').each(function () {
-			amenties.push($(this).data('id'));
-		});
+    const day = date.getDate();
+    const months = ['January', 'Febuary', 'March', 'April', 'May',
+      'June', 'July', 'August', 'September', 'October',
+      'November', 'December'];
+    const month = months[date.getMonth()];
+    // Add suffix to the day
+    const suffix = (day) => {
+      if (day >= 11 && day <= 13) return 'th'; // special case for teen numbers
+      switch (day % 10) {
+        case 1: return 'st';
+        case 2: return 'nd';
+        case 3: return 'rd';
+        default: return 'th';
+      }
+    };
 
-		// Send POST request to fetch places based on checked amenties
-		$.ajax({
-			url: 'http://0.0.0.0:5001/api/v1/places_search/',
-			type: 'POST',
-			contentType: 'application/json',
-			data: JSON.stringify({
-				amenities: amenities,
-				cities: cities,
-				states: states
-			}),
-			success: function (places) {
-				const placesSection = $('.places');
-				placesSection.empty();
+    return `${day}${suffix()} ${month} ${date.getFullYear()}`;
+  }
 
-				// Add each place to the section
-				places.forEach(place => {
-					const article = `
-					   <article>
-					   <div class="title_box">
-                            		     <h2>${place.name}</h2>
-                            		     <div class="price_by_night">$${place.price_by_night}</div>
-                          		</div>
-                          		<div class="information">
-                            		   <div class="max_guest">${place.max_guest} Guest${place.max_guest !== 1 ? 's' : ''}</div>
-                            		   <div class="number_rooms">${place.number_rooms} Bedroom${place.number_rooms !== 1 ? 's' : ''}</div>
-                            		   <div class="number_bathrooms">${place.number_bathrooms} Bathroom${place.number_bathrooms !== 1 ? 's' : ''}</div>
-                          		</div>
-                          		<div class="description">
-                            		  ${place.description}
-			    		</div>
-                        	    </article>`;
-                    		placesSection.append(article);
-				});
-			},
-			error: function (xhr, status) {
-				console.log('Enter fecting place: ' + status);
-			}
-		});
-	});
+  async function fetchReviews (placeId) {
+    try {
+      const reviews = await $.ajax({
+        url: `http://0.0.0.0:5001/api/v1/places/${placeId}/reviews`,
+        dataType: 'json'
+      });
+      return reviews;
+    } catch (error) {
+      console.log('Error: ', error);
+    }
+  }
 
-	// Review toggling functionality
-	const reviewSection = $('#reviews-section')
-	const toggleButton = $('#reviews-toggle')
+  async function fetchUser (userId) {
+    try {
+      const user = await $.ajax({
+        url: `http://0.0.0.0:5001/api/v1/users/${userId}`,
+        dataType: 'json'
+      });
+      return user;
+    } catch (error) {
+      console.log('Error', error);
+    }
+  }
 
-	// Function to fetch and display reviews
-	function fetchAndDisplayReview() {
-          $.ajax({
-		  url: '/api/v1/reviews',
-		  type: 'GET',
-		  dataType: 'json',
-		  success: function (reviews) {
-		    reviewsSection.empty()
+  async function createPlaces (places) {
+    // Iterate over each place returned by the API
+    const sectionPlaces = $('section.places');
+    sectionPlaces.empty();
 
-		    reviews.forEach(review => {
-		      const reviewElement = `
-			<div class="review">
-		          <p><strong>${review.reviewer}:</strong> ${review.content}</p>
-	                </div>`
-		    reviewsSwction.append(reviewElement)
-		   });
+    for (const place of places) {
+      // Create an article element to hold place details
+      const article = $('<article></article>');
+      article.addClass('article');
 
-	           reviewsSection.show()
-		   toggleButton.text('hide')
-		   toggleButton.attr('data-show', 'hide')
-		  }
-		  error: function (xhr, status) {
-	            console.log('Error fetching reviews: ' + status)
-		  }
-	  });
-	}
+      // Create and append the title box with place name and price
+      const titleBox = $('<div></div>');
+      titleBox.addClass('title_box');
+      $('<h2>').text(place.name).appendTo(titleBox);
+      $('<div>').text(place.price_by_night).addClass('price_by_night').appendTo(titleBox);
+      article.append(titleBox);
 
-	// Function to hide reviews
-	function hideReviews() {
-	  reviewsSection.empty()
-	  reviewsSection.hide()
-	  toggleButton.text('show')
-          toggleButton.attr('data-show', 'show')
-	}
+      // Create and append the information box with place details (guests, rooms, bathrooms)
+      const info = $('<div></div>');
+      info.addClass('information');
+      $('<div>').text(place.max_guest + ' Guests').addClass('max_guest').appendTo(info);
+      $('<div>').text(place.number_rooms + ' Rooms').addClass('number_rooms').appendTo(info);
+      $('<div>').text(place.number_bathrooms + ' Bathrooms').addClass('number_bathrooms').appendTo(info);
+      article.append(info);
 
-	// Event listener for the toggle button
-	toggleButton.on('click', function () {
-	  if (toggleButton.attr('data-show') === 'show') {
-	    fetchAndDisplayReviews()
-	  } else {
-	    hideReviews()
-	  }
-	});
+      // Add the place description to the article
+      $('<div>').text(place.description).addClass('description').appendTo(article);
+
+      // Add the place review box
+      const reviews = await fetchReviews(place.id);
+
+      console.log('reviews => ', reviews);
+      const div = $('<div></div>');
+      div.addClass('reviews');
+      $('<h2>').html(`${reviews.length} Reviews <span>show</span>`).appendTo(div);
+      // add the list of reviews
+      for (const review of reviews) {
+        const user = await fetchUser(review.user_id);
+        const reviewsList = $('<ul></ul>');
+        const list = $('<li></li>');
+        $('<h3>').text(`From ${user.first_name} ${user.last_name} the ${formatDate(review.updated_at)}`).appendTo(list);
+        $('<p>').text(`${review.text}`).appendTo(list);
+
+        reviewsList.append(list);
+        div.append(reviewsList);
+        article.append(div);
+        reviewsList.hide();
+        // Append the article to the section.places in the DOM
+      }
+      sectionPlaces.append(article);
+    }
+  }
+
+  $(document).on('click', '.reviews h2 span', function () {
+    $(this).text($(this).text() === 'show' ? 'hide' : 'show');
+    $('.reviews ul').toggle();
+  });
+
+  $('button').click(async function () {
+    const amenities = Object.keys(selectedAmenities);
+    const states = Object.keys(selectedStates);
+    const cities = Object.keys(selectedCities);
+
+    // Checking the IDs of amenities
+    try {
+      const places = await $.ajax({
+        url: 'http://0.0.0.0:5001/api/v1/places_search/', // API endpoint for searching places
+        type: 'POST',
+        data: JSON.stringify({ amenities, states, cities }),
+        contentType: 'application/json'
+      });
+      await createPlaces(places);
+    } catch (error) {
+      console.log('Error', error);
+    }
+  });
+
+  // Listen for changes to checkboxes within elements with class 'popover'
+  $('input[type=checkbox]').change(function () {
+    // Get the 'data-id' and 'data-name' attributes of the changed checkbox
+    const id = $(this).data('id');
+    const name = $(this).data('name');
+    const op = $(this).is(':checked') ? 'add' : 'delete';
+
+    // Add or remove the amenity, states and cities based on the checkbox state
+    if ($(this).attr('name') === 'amenities') {
+      updateDict(selectedAmenities, id, name, op);
+      $('.amenities h4').text(Object.values(selectedAmenities).join(', '));
+    } else if ($(this).attr('name') === 'states') {
+      updateDict(selectedStates, id, name, op);
+      $('.locations h4').text(Object.values(selectedStates).join(', '));
+    } else {
+      updateDict(selectedCities, id, name, op);
+    }
+  });
+
+  // Perform an AJAX POST request to fetch places data
+  $.ajax({
+    url: 'http://0.0.0.0:5001/api/v1/places_search/', // API endpoint for searching places
+    type: 'POST',
+    data: '{}',
+    contentType: 'application/json',
+    success: function (places) {
+      createPlaces(places);
+    }
+  });
+
+  // Check API status
+  $.ajax({
+    url: 'http://0.0.0.0:5001/api/v1/status/',
+    type: 'GET',
+    dataType: 'json',
+    success: function (json) {
+      if (json.status === 'OK') {
+        $('#api_status').addClass('available');
+      } else {
+        $('#api_status').removeClass('available');
+      }
+    },
+    error: function (xhr, status) {
+      // On error, remove the available class
+      $('#api_status').removeClass('available');
+      console.log('Error ' + status);
+    }
+  });
 });
